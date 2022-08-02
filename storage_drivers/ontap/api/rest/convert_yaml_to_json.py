@@ -17,12 +17,11 @@ def custom_default(obj):
     if isinstance(obj, datetime.datetime):
         if obj.utcoffset() is not None:
             obj = obj - obj.utcoffset()
-        millis = int(
-            calendar.timegm(obj.timetuple()) * 1000 +
-            obj.microsecond / 1000
+        return int(
+            calendar.timegm(obj.timetuple()) * 1000 + obj.microsecond / 1000
         )
-        return millis
-    raise TypeError('Not sure how to serialize %s' % (obj,))
+
+    raise TypeError(f'Not sure how to serialize {obj}')
 
 yaml = ruamel.yaml.YAML()
 yaml.indent(sequence=4, offset=2)

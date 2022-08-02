@@ -106,9 +106,8 @@ def fix_incorrect_enum_type(d):
 
     #d["paths"]["/storage/aggregates"]["get"]["parameters"][7]["type"] = "string"
     for parameter in d["paths"]["/storage/aggregates"]["get"]["parameters"]:
-        if "type" in parameter:
-            if parameter["type"] == "enum":
-                parameter["type"] = "string"
+        if "type" in parameter and parameter["type"] == "enum":
+            parameter["type"] = "string"
 
 def fix_incorrect_unsigned_type(d):
     #   - description: Filter by ha.ports.number
@@ -117,9 +116,8 @@ def fix_incorrect_unsigned_type(d):
     #     type: unsigned
 
     for parameter in d["paths"]["/cluster/nodes"]["get"]["parameters"]:
-        if "type" in parameter:
-            if parameter["type"] == "unsigned":
-                parameter["type"] = "integer"
+        if "type" in parameter and parameter["type"] == "unsigned":
+            parameter["type"] = "integer"
 
 def fix_incorrect_type_for_ignore_warnings(d):
     # - "paths./cloud/targets/{uuid}.patch.parameters" must validate one and only one schema (oneOf). Found none valid
@@ -133,10 +131,12 @@ def fix_incorrect_type_for_ignore_warnings(d):
     #     name: ignore_warnings
     #     type: boolean
     for parameter in d["paths"]["/cloud/targets/{uuid}"]["patch"]["parameters"]:
-        if "name" in parameter:
-            if parameter["name"] == "ignore_warnings":
-                if 'items' in parameter:
-                    parameter.pop("items") # remove the incorrect entry for items here
+        if (
+            "name" in parameter
+            and parameter["name"] == "ignore_warnings"
+            and 'items' in parameter
+        ):
+            parameter.pop("items") # remove the incorrect entry for items here
 
 def fix_incorrect_operationIds_for_snaplock(d):
     # - "snaplock_legal_hold_collection_get" is defined 2 times
@@ -187,38 +187,38 @@ def fix_incorrect_string_value_for_number(d):
 
     ### fc ports
     enum = d["definitions"]["storage_bridge"]["properties"]["fc_ports"]["items"]["properties"]["configured_data_rate"]["enum"]
-    for i in range(0, len(enum)):
+    for i in range(len(enum)):
         if isinstance(enum[i], str):
             print("Converting integer enum value type from str -> int")
             enum[i] = int(enum[i])  # force it to be int
 
     enum = d["definitions"]["storage_bridge"]["properties"]["fc_ports"]["items"]["properties"]["data_rate_capability"]["enum"]
-    for i in range(0, len(enum)):
+    for i in range(len(enum)):
         if isinstance(enum[i], str):
             print("Converting integer enum value type from str -> int")
             enum[i] = int(enum[i])  # force it to be int
 
     enum = d["definitions"]["storage_bridge"]["properties"]["fc_ports"]["items"]["properties"]["negotiated_data_rate"]["enum"]
-    for i in range(0, len(enum)):
+    for i in range(len(enum)):
         if isinstance(enum[i], str):
             print("Converting integer enum value type from str -> int")
             enum[i] = int(enum[i])  # force it to be int
 
     enum = d["definitions"]["storage_bridge"]["properties"]["fc_ports"]["items"]["properties"]["sfp"]["properties"]["data_rate_capability"]["enum"]
-    for i in range(0, len(enum)):
+    for i in range(len(enum)):
         if isinstance(enum[i], str):
             print("Converting integer enum value type from str -> int")
             enum[i] = int(enum[i])  # force it to be int
 
     ### sas ports
     enum = d["definitions"]["storage_bridge"]["properties"]["sas_ports"]["items"]["properties"]["data_rate_capability"]["enum"]
-    for i in range(0, len(enum)):
+    for i in range(len(enum)):
         if isinstance(enum[i], str):
             print("Converting integer enum value type from str -> float")
             enum[i] = float(enum[i])  # force it to be float
 
     enum = d["definitions"]["storage_bridge"]["properties"]["sas_ports"]["items"]["properties"]["negotiated_data_rate"]["enum"]
-    for i in range(0, len(enum)):
+    for i in range(len(enum)):
         if isinstance(enum[i], str):
             print("Converting integer enum value type from str -> float")
             enum[i] = float(enum[i])  # force it to be int
@@ -292,16 +292,14 @@ def walk(o):
                     d.pop('x-ntap-introduced')
                 if "in" in d:
                     in_value = d["in"]
-                    if in_value == "query":
-                        if "name" in d:
-                            name = d["name"] + ".query.parameter"
-                            go_variable_name = pascalize(name)
-                            d["x-go-name"] = dq(go_variable_name)
-                    if in_value == "path":
-                        if "name" in d:
-                            name = d["name"] + ".path.parameter"
-                            go_variable_name = pascalize(name)
-                            d["x-go-name"] = dq(go_variable_name)
+                    if in_value == "query" and "name" in d:
+                        name = d["name"] + ".query.parameter"
+                        go_variable_name = pascalize(name)
+                        d["x-go-name"] = dq(go_variable_name)
+                    if in_value == "path" and "name" in d:
+                        name = d["name"] + ".path.parameter"
+                        go_variable_name = pascalize(name)
+                        d["x-go-name"] = dq(go_variable_name)
 
                 if "type" in d:
                     type = d["type"]
@@ -459,14 +457,12 @@ def walk(o):
                             v.pop("default") # convert this into a nullable value
                             v["x-nullable"] = True
 
-                        if isBooleanType:
-                            if default == "enabled":
-                                v["default"] = True
+                        if isBooleanType and default == "enabled":
+                            v["default"] = True
 
-                        if isIntegerType:
-                            if isinstance(default, str):
-                                print("Converting default type from str -> int")
-                                v['default'] = int(default)
+                        if isIntegerType and isinstance(default, str):
+                            print("Converting default type from str -> int")
+                            v['default'] = int(default)
 
                         if isStringType:
                             v["default"] = dq(v["default"])  # force quotes around the default string value
@@ -478,15 +474,13 @@ def walk(o):
                         if isStringType:
                             v["example"] = dq(v["example"])  # force quotes around the example string value
 
-                        if isIntegerType:
-                            if isinstance(example, str):
-                                print("Converting example type from str -> int")
-                                v['example'] = int(example)
+                        if isIntegerType and isinstance(example, str):
+                            print("Converting example type from str -> int")
+                            v['example'] = int(example)
 
-                        if isArrayType:
-                            if isArrayTypeString:
-                                for i in range(0, len(example)):
-                                    example[i] = dq(example[i])  # force quotes around the example string values
+                        if isArrayType and isArrayTypeString:
+                            for i in range(len(example)):
+                                example[i] = dq(example[i])  # force quotes around the example string values
 
                     if "readOnly" in v:
                         # dataMap["definitions"]["cluster_metrics_response"]["properties"]["records"]["items"]["readOnly"]
@@ -524,12 +518,12 @@ def walk(o):
                         if isStringType:
                             #print("for", path+"/"+key, "of type:", type, "found enum")
                             enum = v["enum"]
-                            for i in range(0, len(enum)):
+                            for i in range(len(enum)):
                                 enum[i] = dq(enum[i])  # force quotes around the string value
 
                         if isIntegerType:
                             enum = v["enum"]
-                            for i in range(0, len(enum)):
+                            for i in range(len(enum)):
                                 if isinstance(enum[i], str):
                                     print("Converting integer enum value type from str -> int")
                                     enum[i] = int(enum[i])  # force it to be int
@@ -549,18 +543,18 @@ def walk(o):
                         v["type"] = "integer"
 
 
-                    # if "in" in v:
-                    #     in_parameter = v["in"]
-                    #     if in_parameter == "query":
-                    #         if "name" in v:
-                    #             name = v["name"] + ".query"
-                    #             go_variable_name = humps.pascalize(name.replace(".", "_"))
-                    #             v["x-go-name"] = dq(go_variable_name)
-                    #     if in_parameter == "path":
-                    #         if "name" in v:
-                    #             name = v["name"] + ".path"
-                    #             go_variable_name = humps.pascalize(name.replace(".", "_"))
-                    #             v["x-go-name"] = dq(go_variable_name)
+                                    # if "in" in v:
+                                    #     in_parameter = v["in"]
+                                    #     if in_parameter == "query":
+                                    #         if "name" in v:
+                                    #             name = v["name"] + ".query"
+                                    #             go_variable_name = humps.pascalize(name.replace(".", "_"))
+                                    #             v["x-go-name"] = dq(go_variable_name)
+                                    #     if in_parameter == "path":
+                                    #         if "name" in v:
+                                    #             name = v["name"] + ".path"
+                                    #             go_variable_name = humps.pascalize(name.replace(".", "_"))
+                                    #             v["x-go-name"] = dq(go_variable_name)
 
             walk(v) # maybe indent again?
 
